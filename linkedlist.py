@@ -22,7 +22,7 @@ class LinkedList(object):
     def __init__(self):
         self.first: ListNode | None = None
         self.current: ListNode | None = None
-        self.last: ListNode | None= None
+        self.last: ListNode | None = None
 
     def add_all(self, linked_list):
         linked_list: LinkedList

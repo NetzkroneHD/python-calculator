@@ -41,6 +41,11 @@ class BinaryTree:
     def get_row(self, row: int):
         return get_row(self, row)
 
+    def __eq__(self, other):
+        if not isinstance(other, self.__class__):
+            return False
+        return self.value == other.value
+
     def __str__(self):
         return f"(value={self.value}, left={self.left}, right={self.right})"
 
@@ -157,7 +162,8 @@ def depth(tree: BinaryTree) -> int:
 
 
 def search(tree: BinaryTree, value):
-    if (tree is None) or (tree.is_empty()): return None
+    if (tree is None) or (tree.is_empty()):
+        return None
 
     if value < tree.value:
         return search(tree.left, value)

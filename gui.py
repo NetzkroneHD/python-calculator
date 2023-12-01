@@ -1,104 +1,14 @@
 from __future__ import annotations
 
 import PySimpleGUI as sg
+
+import calculations
 import linkedlist as ll
 
 from fractions import Fraction
-import math
 
 equationStack = ll.LinkedList()
 currentNode: ll.ListNode | None = None
-
-pi = math.pi
-e = math.e
-
-fib_cache = {
-    0: 0,
-    1: 1
-}
-
-fac_cache = {
-    0: 1,
-    1: 1
-}
-
-
-def root(x, y):
-    return math.pow(x, 1 / y)
-
-
-def pow(x, y):
-    return math.pow(x, y)
-
-
-def sin(x):
-    return math.sin(x)
-
-
-def cos(x):
-    return math.cos(x)
-
-
-def tan(x):
-    return math.tan(x)
-
-
-def asin(x):
-    return math.asin(x)
-
-
-def acos(x):
-    return math.acos(x)
-
-
-def atan(x):
-    return math.atan(x)
-
-
-def ln(x):
-    return math.log(x, e)
-
-
-def log(x, base):
-    return math.log(x, base)
-
-
-def fac(x):
-    fc = 1
-    for i in range(x + 1):
-        if i in fac_cache:
-            fc = fac_cache[i]
-        else:
-            fc *= i
-            fac_cache[i] = fc
-    return fc
-
-
-def is_ctrl() -> bool:
-    return not (ctrl_button.ButtonColor == shift_button_color)
-
-
-def is_float(x: str) -> bool:
-    try:
-        float(x)
-        return True
-    except ValueError:
-        return False
-
-
-def fibonacci(n):
-    if n in fib_cache:
-        return fib_cache.get(n)
-    n1 = fibonacci(n - 1)
-    n2 = fibonacci(n - 2)
-
-    fib_cache[n - 1] = n1
-    fib_cache[n - 2] = n2
-
-    return n1 + n2
-
-
-fibonacci(99)
 
 space = " "
 calculation: sg.InputText = sg.InputText("", background_color="GREY", justification="CENTER",
@@ -235,6 +145,24 @@ temp_text = ""
 current_element: sg.Button = ctrl_button
 current_element_color: tuple = ctrl_button.ButtonColor
 
+calculations.create_cache_dir()
+calculations.create_database_file()
+calculations.create_tables()
+calculations.load_cache()
+
+
+def is_ctrl() -> bool:
+    return not (ctrl_button.ButtonColor == shift_button_color)
+
+
+def is_float(x: str) -> bool:
+    try:
+        float(x)
+        return True
+    except ValueError:
+        return False
+
+
 while True:
     event, values = window.read()
 
@@ -311,14 +239,12 @@ while True:
         if calculation.get() == "":
             continue
         try:
-            code = eval(compile(str(calculation.get()), "<string>", "eval"))
-            equationStack.append(calculation.get())
+            result = calculations.get_result(calculation.get())
+            equationStack.append(result.calculation)
             equationStack.to_last()
             currentNode = equationStack.last
-            print(f"EquationStack: {equationStack}")
-            calculation.update(value=f"{code}")
+            calculation.update(value=f"{result.result}")
         except Exception as ex:
-
             temp_text = str(calculation.get())
             calculation.update(value=f"Error while calculating: {ex}")
 
@@ -332,5 +258,6 @@ while True:
 
     else:
         calculation.update(value=str(calculation.get()) + event)
+
 window.close()
 exit(1)
