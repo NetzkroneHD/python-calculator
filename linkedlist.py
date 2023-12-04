@@ -6,7 +6,7 @@ class ListNode(object):
     def __init__(self, previous_node, next_node, value):
         self.previous: ListNode = previous_node
         self.next: ListNode = next_node
-        self.value: ListNode = value
+        self.value = value
 
     def clear(self):
         self.previous = None

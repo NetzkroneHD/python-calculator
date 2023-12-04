@@ -1,11 +1,11 @@
 from __future__ import annotations
 
+from fractions import Fraction
+
 import PySimpleGUI as sg
 
-import calculations
+import computing
 import linkedlist as ll
-
-from fractions import Fraction
 
 equationStack = ll.LinkedList()
 currentNode: ll.ListNode | None = None
@@ -40,6 +40,9 @@ bracket_c_button = sg.Button(")", expand_x=True)
 del_button = sg.Button("<-", expand_x=True)
 
 shift_button_color = ctrl_button.ButtonColor
+
+current_element: sg.Button = ctrl_button
+current_element_color: tuple = ctrl_button.ButtonColor
 
 layout = [
     [sg.Text(f"{space:100}", expand_x=True)],
@@ -77,9 +80,30 @@ layout = [
 
 window = sg.Window("Simple Calculator", layout, auto_size_text=True, return_keyboard_events=True)
 
-allowed_keys = ["π", "e", "^", ",", "(", ")", "<-", "+", "-", "*", "/", ".", ",", "BackSpace:8", "Delete:46",
-                "Escape:27", "\r", "=", "cls", "root(", "√", "sin", "cos", "tan", "asin", "acos", "atan", "log", "ln",
-                "fac", "!", "Control_L:17", "fibonacci", "f", "Up:38", "Down:40"]
+
+def is_ctrl() -> bool:
+    return not (ctrl_button.ButtonColor == shift_button_color)
+
+
+def ctrl_pressed():
+    if not is_ctrl():
+        sin_button.update(text="asin")
+        cos_button.update(text="acos")
+        tan_button.update(text="atan")
+        ctrl_button.update(button_color=(shift_button_color[0], "blue"))
+    else:
+        sin_button.update(text="sin")
+        cos_button.update(text="cos")
+        tan_button.update(text="tan")
+        ctrl_button.update(button_color=shift_button_color)
+
+
+alias = {
+    "BackSpace:8": "<-",
+    "Delete:46": "<-",
+    "Escape:27": "cls",
+    "\r": "=",
+}
 
 ctrl_key_change = {
     "sin": "asin",
@@ -90,41 +114,7 @@ ctrl_key_change = {
     "atan": "tan"
 }
 
-# Dieses Dictionary wird verwendet, um Tastaturevents, die von PySimpleGUI generiert werden, auf andere Befehle umzuleiten.
-button_alias = {
-    "\r": "=",
-    "BackSpace:8": "<-",
-    "Escape:27": "cls",
-    "r": "√",
-    "p": "π",
-    "f": "fibonacci",
-}
-
-# Ähnlich wie button_alias, wird dieses Dictionary verwendet, um Symbole oder Tastaturereignisse auf andere Symbole oder Befehle umzuleiten
-symbol_alias = {
-    "π": "pi",
-    "BackSpace:8": "<-",
-    "Delete:46": "<-",
-    "\r": "=",
-    "Escape:27": "cls",
-    "p": "pi",
-    "r": "root("
-}
-
-symbol_commands = {
-    "BackSpace:8": "<-",
-    "Delete:46": "<-",
-    "\r": "=",
-    "Escape:27": "cls",
-    "p": "pi",
-    "π": "pi",
-    "fibonacci": "fibonacci(",
-    "f": "fibonacci(",
-    "!": "fac(",
-    "√": "root(",
-    "r": "root(",
-    "root": "root(",
-    "^": "pow(",
+formular = {
     "pow": "pow(",
     "asin": "asin(",
     "acos": "acos(",
@@ -133,66 +123,55 @@ symbol_commands = {
     "cos": "cos(",
     "tan": "tan(",
     "log": "log(",
+    "^": "pow(",
     "ln": "ln(",
-    "fac": "fac("
+    "fac": "fac(",
+    "fibonacci": "fibonacci(",
+    "π": "pi",
+    "!": "fac(",
+    "√": "root(",
+    "e": "e",
+    "+": "+",
+    ",": ",",
+    ".": ".",
+    "-": "-",
+    "*": "*",
+    "/": "/",
+    ")": ")",
+    "(": "(",
+
 }
 
 for i in range(10):
-    allowed_keys.append(str(i))
+    formular[str(i)] = str(i)
 
 temp_text = ""
 
-current_element: sg.Button = ctrl_button
-current_element_color: tuple = ctrl_button.ButtonColor
-
-calculations.create_cache_dir()
-calculations.create_database_file()
-calculations.create_tables()
-calculations.load_cache()
-
-
-def is_ctrl() -> bool:
-    return not (ctrl_button.ButtonColor == shift_button_color)
-
-
-def is_float(x: str) -> bool:
-    try:
-        float(x)
-        return True
-    except ValueError:
-        return False
-
+computing.load_cache()
 
 while True:
     event, values = window.read()
+    print(f"event: {event} values: {values}")
+
+    alias_button = alias.get(str(event))
+    if alias_button is not None:
+        event = alias_button
+
+    ctrl_change = ctrl_key_change.get(event)
+    if ctrl_change is not None and is_ctrl():
+        event = ctrl_change
 
     if event is None or event == sg.WIN_CLOSED:
         print("Closing window...")
         break
-    elif event == "ctrl" or event == "Control_L:17":
-        if not is_ctrl():
-            sin_button.update(text="asin")
-            cos_button.update(text="acos")
-            tan_button.update(text="atan")
-            ctrl_button.update(button_color=(shift_button_color[0], "blue"))
-        else:
-            sin_button.update(text="sin")
-            cos_button.update(text="cos")
-            tan_button.update(text="tan")
-            ctrl_button.update(button_color=shift_button_color)
-
-        continue
-    elif event == "to fraction" and is_float(str(calculation.get())):
-        calculation.update(value=f"{str(Fraction(float(calculation.get())).limit_denominator())}")
-        continue
-
-    elif event not in allowed_keys and event not in symbol_alias:
-        continue
+    elif event == "ctrl" or str(event).startswith("Control_"):
+        ctrl_pressed()
+    elif event == "to fraction" and computing.is_float(calculation.get()):
+        calculation.update(value=f"{computing.to_fraction(float(calculation.get()))}")
     elif str(calculation.get()).startswith("Error while calculating: "):
         calculation.update(value=temp_text)
         continue
-
-    if event == "Up:38":
+    elif event == "Up:38":
         if currentNode is not None:
             if currentNode.previous is not None:
                 calculation.update(value=f"{currentNode.previous.value}")
@@ -208,38 +187,11 @@ while True:
             else:
                 calculation.update(value=f"{currentNode.value}")
         continue
-
-    element: sg.Button = window.find_element(event, True)
-
-    if element is not None:
-        try:
-            alias = button_alias.get(event)
-            if alias is not None:
-                element = window.find_element(alias, True)
-
-            current_element.update(button_color=current_element_color)
-            current_element = element
-            current_element_color = current_element.ButtonColor
-            current_element.update(button_color=(current_element_color[0], "red"))
-        except AttributeError:
-            continue
-
-    event_alias = symbol_alias.get(event)
-
-    if event_alias is not None:
-        event = event_alias
-    if is_ctrl() and event in ctrl_key_change:
-        event = ctrl_key_change[event]
-
-    cmd = symbol_commands.get(event)
-
-    if cmd is not None:
-        calculation.update(value=str(calculation.get()) + cmd)
     elif event == "=":
         if calculation.get() == "":
             continue
         try:
-            result = calculations.get_result(calculation.get())
+            result = computing.get_result(calculation.get())
             equationStack.append(result.calculation)
             equationStack.to_last()
             currentNode = equationStack.last
@@ -247,17 +199,26 @@ while True:
         except Exception as ex:
             temp_text = str(calculation.get())
             calculation.update(value=f"Error while calculating: {ex}")
-
     elif event == "cls":
         calculation.update(value="")
         equationStack.to_last()
         currentNode = equationStack.last
-
     elif event == "<-":
         calculation.update(value=str(calculation.get())[0:len(str(calculation.get())) - 1])
 
     else:
-        calculation.update(value=str(calculation.get()) + event)
+        f = formular.get(event)
+        if f is None:
+            continue
+        calculation.update(value=str(calculation.get()) + f)
 
-window.close()
-exit(1)
+    element: sg.Button = window.find_element(event, True)
+
+    if element is not None:
+        try:
+            current_element.update(button_color=current_element_color)
+            current_element = element
+            current_element_color = current_element.ButtonColor
+            current_element.update(button_color=(current_element_color[0], "red"))
+        except AttributeError:
+            continue
