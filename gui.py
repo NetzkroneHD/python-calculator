@@ -1,16 +1,12 @@
 from __future__ import annotations
 
-from fractions import Fraction
-
 import PySimpleGUI as sg
 
 import computing
 import linkedlist as ll
 
-equationStack = ll.LinkedList()
-currentNode: ll.ListNode | None = None
-
 space = " "
+
 calculation: sg.InputText = sg.InputText("", background_color="GREY", justification="CENTER",
                                          expand_y=True, expand_x=True, disabled=True,
                                          use_readonly_for_disable=True)
@@ -80,24 +76,10 @@ layout = [
 
 window = sg.Window("Simple Calculator", layout, auto_size_text=True, return_keyboard_events=True)
 
+calculation_stack = ll.LinkedList()
+current_node: ll.ListNode | None = None
 
-def is_ctrl() -> bool:
-    return not (ctrl_button.ButtonColor == shift_button_color)
-
-
-def ctrl_pressed():
-    if not is_ctrl():
-        sin_button.update(text="asin")
-        cos_button.update(text="acos")
-        tan_button.update(text="atan")
-        ctrl_button.update(button_color=(shift_button_color[0], "blue"))
-    else:
-        sin_button.update(text="sin")
-        cos_button.update(text="cos")
-        tan_button.update(text="tan")
-        ctrl_button.update(button_color=shift_button_color)
-
-
+# Dient dazu Tastatur-Events auf Buttons umzuleiten.
 alias = {
     "BackSpace:8": "<-",
     "Delete:46": "<-",
@@ -105,6 +87,7 @@ alias = {
     "\r": "=",
 }
 
+# Dient dazu um zu wissen, was sich bei dem Ctrl drücken ändert.
 ctrl_key_change = {
     "sin": "asin",
     "cos": "acos",
@@ -114,6 +97,7 @@ ctrl_key_change = {
     "atan": "tan"
 }
 
+# Dient dazu, um die Buttons auf die funktionen umzuleiten.
 formular = {
     "pow": "pow(",
     "asin": "asin(",
@@ -142,16 +126,35 @@ formular = {
 
 }
 
+
 for i in range(10):
     formular[str(i)] = str(i)
 
+# Dient dazu den Text zwischenzuspeichern, wenn ein Fehler auftritt.
 temp_text = ""
 
 computing.load_cache()
 
+
+def is_ctrl() -> bool:
+    return not (ctrl_button.ButtonColor == shift_button_color)
+
+
+def ctrl_pressed():
+    if not is_ctrl():
+        sin_button.update(text="asin")
+        cos_button.update(text="acos")
+        tan_button.update(text="atan")
+        ctrl_button.update(button_color=(shift_button_color[0], "blue"))
+    else:
+        sin_button.update(text="sin")
+        cos_button.update(text="cos")
+        tan_button.update(text="tan")
+        ctrl_button.update(button_color=shift_button_color)
+
+
 while True:
     event, values = window.read()
-    print(f"event: {event} values: {values}")
 
     alias_button = alias.get(str(event))
     if alias_button is not None:
@@ -162,7 +165,6 @@ while True:
         event = ctrl_change
 
     if event is None or event == sg.WIN_CLOSED:
-        print("Closing window...")
         break
     elif event == "ctrl" or str(event).startswith("Control_"):
         ctrl_pressed()
@@ -172,37 +174,37 @@ while True:
         calculation.update(value=temp_text)
         continue
     elif event == "Up:38":
-        if currentNode is not None:
-            if currentNode.previous is not None:
-                calculation.update(value=f"{currentNode.previous.value}")
-                currentNode = currentNode.previous
+        if current_node is not None:
+            if current_node.previous is not None:
+                calculation.update(value=f"{current_node.previous.value}")
+                current_node = current_node.previous
             else:
-                calculation.update(value=f"{currentNode.value}")
+                calculation.update(value=f"{current_node.value}")
         continue
     elif event == "Down:40":
-        if currentNode is not None:
-            if currentNode.next is not None:
-                calculation.update(value=f"{currentNode.next.value}")
-                currentNode = currentNode.next
+        if current_node is not None:
+            if current_node.next is not None:
+                calculation.update(value=f"{current_node.next.value}")
+                current_node = current_node.next
             else:
-                calculation.update(value=f"{currentNode.value}")
+                calculation.update(value=f"{current_node.value}")
         continue
     elif event == "=":
         if calculation.get() == "":
             continue
         try:
             result = computing.get_result(calculation.get())
-            equationStack.append(result.calculation)
-            equationStack.to_last()
-            currentNode = equationStack.last
+            calculation_stack.append(result.calculation)
+            calculation_stack.to_last()
+            current_node = calculation_stack.last
             calculation.update(value=f"{result.result}")
         except Exception as ex:
             temp_text = str(calculation.get())
             calculation.update(value=f"Error while calculating: {ex}")
     elif event == "cls":
         calculation.update(value="")
-        equationStack.to_last()
-        currentNode = equationStack.last
+        calculation_stack.to_last()
+        current_node = calculation_stack.last
     elif event == "<-":
         calculation.update(value=str(calculation.get())[0:len(str(calculation.get())) - 1])
 
